@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>Heatmap</title>
+        <script type="text/javascript" src="../lib/d3.v3.min.js"></script>
+        <style type="text/css">
+            body {
+              font: 10px sans-serif;
+            }
+
+            .label {
+              font-weight: bold;
+            }
+
+            .tile {
+              shape-rendering: crispEdges;
+            }
+
+            .axis path,
+            .axis line {
+              fill: none;
+              stroke: #000;
+              shape-rendering: crispEdges;
+            }
+
+        </style>
+    </head>
+    <h1 align = "center">Water Usage Heatmap</h1>
+    <h2 align = "center"></h2>
+    <body>
+        <script type="text/javascript">
+            var margin = {top: 20, right: 90, bottom: 30, left: 50},
+                width = 960 - margin.left - margin.right,
+                height = 500 - margin.top - margin.bottom;
+
+            var formatDate = d3.time.format("%b");
+            var months = ["Jan", "Feb", "Mar", "Apr","May", "Jun",
+             "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"]
+
+            //Create SVG Element
+            var svg = d3.select("body").append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", "translate(" + margin.left
+                    + "," + margin.top + ")");
+
+            //Create the white space between tiles
+            var xStep = .9;
+            var yStep = .9;
+
+            //Initial Zip Code
+            var selectValue = "90077"
+
+            //Variables
+            var x = d3.time.scale()
+                .domain([new Date(2012,0,1), new Date(2012,11,31)])
+                .range([margin.left, width]),
+            y = d3.scale.linear().range([height - margin.bottom, 0]),
+            z = d3.scale.linear().range(["#ffcccc", "#ff0000"]);
+
+            //Read From CSV
+            //Wrap in Function (advice given in office hours)
+            function createHeatmap(selectValue) {
+                d3.csv("heatmap.csv", function(error, dataset) {
+                  if (error) throw error;
+
+                  dataset = dataset.filter(function(row) {
+                    return row['Zip Code'] == selectValue;
+                  });
+
+                  dataset.forEach(function(d) {
+                    d['Zip Code'] = d['Zip Code'];
+                    d.Month = +d.Month;
+                    d.Year = +d.Year;
+                    d.Power = +d.Power;
+                  });
+
+                //Compute Domains
+                x.domain(d3.extent(dataset, function(d) { return d.Month; }));
+                y.domain(d3.extent(dataset, function(d) { return d.Year; }));
+                z.domain(d3.extent(dataset, function(d) { return d.Power; }));
+
+                x.domain([x.domain()[0], +x.domain()[1] + xStep]);
+                y.domain([y.domain()[0], y.domain()[1] + yStep]);
+
+                //Tiles
+                svg.selectAll(".tile")
+                .data(dataset)
+                .enter().append("rect")
+                .attr("class", "tile")
+                .attr("x", function(d) { return x(d.Month); })
+                .attr("y", function(d) { return y(d.Year + yStep); })
+                .attr("width", x(xStep) -x(0))
+                .attr("height", y(0) - y(yStep))
+                .style("fill", function(d) { return z(d.Power); });
+
+                // Add Y-Axis
+                svg.append("g")
+                .attr("class", "y axis")
+                .attr("transform", "translate(0," + -20 + ")")
+                .call(d3.svg.axis().scale(y).orient("left").tickFormat(d3.format("d")))
+                .append("text")
+                .attr("class", "label")
+                .attr("y", 6)
+                .attr("dy", ".8em")
+                .attr("text-anchor", "end")
+                .attr("transform", "rotate(-90)")
+                .text("Year");
+
+                //Add X-Axis
+                svg.append("g")
+                    .data(months)
+                    .attr("class", "x axis")
+                    .attr("transform", "translate(" + 28 + "," + height + ")")
+                    .call(d3.svg.axis().scale(x).orient("bottom").ticks(12)
+                    .tickSize(6, 0).tickFormat(formatDate))
+
+                    .selectAll(".tick text")
+                    .style("text-anchor", "end")
+                    .attr("x", 6)
+                    .attr("y", 6)
+                    .text(function(d,i) {
+                        return months[i];
+                    });
+
+                //Text Label for X-Axis
+                svg.append("text")
+                .attr("x", 833 )
+                .attr("y", height - 7)
+                .style("text-anchor", "middle")
+                .style("font-weight", "bold")
+                .text("Month");
+
+                //Add Legend
+                var legend = svg.selectAll(".legend")
+                .data(z.ticks(7).reverse())
+                .enter().append("g")
+                .attr("class", "legend")
+                .attr("transform", function(d, i) { return "translate(" + (width + 20) + "," + (20 + i * 25) + ")"; });
+
+                legend.append("rect")
+                .attr("width", 20)
+                .attr("height", 20)
+                .style("fill", z);
+
+                legend.append("text")
+                .attr("x", 26)
+                .attr("y", 10)
+                .attr("dy", ".35em")
+                .text(String);
+
+                svg.append("text")
+                .attr("class", "label")
+                .attr("x", width + 20)
+                .attr("y", 10)
+                .attr("dy", ".35em")
+                .text("kWh");
+
+            });}
+
+            createHeatmap(selectValue);
+
+            //Drop-Down
+            d3.csv("heatmap.csv", function(error, dataset) {
+              if (error) throw error;
+
+              dataset.forEach(function(d) {
+                d['Zip Code'] = d['Zip Code'];
+                d.Month = +d.Month;
+                d.Year = +d.Year;
+                d.Power = +d.Power;
+              });
+
+            var data = dataset.map(function(row) { return row['Zip Code']});
+            var zipCodes = []
+
+            //Mapping Unique Zip Codes
+            for (i = 0; i <= 6; i++) {
+                zipCodes.push(data[i]);
+            };
+
+            var select = d3.select('h2')
+                .append('select')
+                .attr('class','select')
+                .on('change',changed);
+
+            var options = select
+                .selectAll('option')
+                .data(zipCodes).enter()
+                .append('option')
+                .text(function (d) { return d; });
+
+            function changed() {
+
+                d3.selectAll(".tile").remove();
+                d3.selectAll(".legend").remove();
+                selectValue = d3.select(this).property('value').toString();
+                createHeatmap(selectValue);
+
+                }
+
+            });
+
+        </script>
+        <p></p>
+    </body>
+</html>
