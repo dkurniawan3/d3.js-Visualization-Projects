@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>Interactive Horizontal Bar Chart</title>
+        <script type="text/javascript" src="../lib/d3.v3.min.js"></script>
+        <script src="../lib/sankey.js"></script>
+        <script src="../lib/d3.tip.v0.6.3.js"></script>
+        <style type="text/css">
+
+            body {
+                font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+                width: 1200px;
+                height: 500px;
+                position: relative;
+            }
+
+            svg {
+                width: 100%;
+                height: 100%;
+                position: left;
+            }
+
+            text {
+                font: 10px sans-serif;
+                color: white;
+            }
+            text.value {
+                font-size: 120%;
+                fill: white;
+            }
+
+            .RevBar {
+                fill: gray;
+                fill-opacity: .8;
+            }
+
+            .RevBar:hover {
+                fill: steelblue;
+            }
+
+            .RevBar2 {
+                fill: steelblue;
+                fill-opacity: .8;
+            }
+
+
+        </style>
+    </head>
+
+    <body>
+        <p id="chart">
+        <script type="text/javascript">
+            var margin = {top: 30, right: 10, bottom: 10, left: 10},
+                width = 550 - margin.left - margin.right,
+                height = 500;
+
+            var columns = ["Q1","Q2","Q3","Q4"];
+
+            var data =  [{product:'Product A',freq:{Q1:576, Q2:1176, Q3:1009, Q4:494}},
+                        {product:'Product B',freq:{Q1:959, Q2:1653, Q3:1999, Q4:697}},
+                        {product:'Product C',freq:{Q1:3210, Q2:4220, Q3:1648, Q4:919}},
+                        {product:'Product D',freq:{Q1:589, Q2:2043, Q3:1153, Q4:911}},
+                        {product:'Product E',freq:{Q1:2599, Q2:1333, Q3:818, Q4:1713}},
+                        {product:'Product F',freq:{Q1:431, Q2:324, Q3:715, Q4:421}},
+                        {product:'Product G',freq:{Q1:1457, Q2:2557, Q3:2245, Q4:762}},
+                        {product:'Product H',freq:{Q1:2573, Q2:3357, Q3:1598, Q4:1287}}];
+
+            var xScale = d3.scale.linear().domain([0, 17000]).range([0, 900]);
+
+            var svg = d3.select('body')
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+            var RevBar = svg.selectAll("g").data(data).enter().append("g")
+
+            RevBar.attr("class", "RevBar")
+            .attr("cx",0)
+            .attr("transform", function(d, i) {
+               return "translate(" + 10 + "," + (i * 55 + 30) + ")";
+            }).append("text")
+            .attr("class", "label")
+            .attr("y", 25)
+            .attr("dy", "-.3em")
+            .text(function(d) {
+                return d.product;
+            });
+
+            //Creating the Bars
+            RevBar.append("rect")
+            .attr("height", 45)
+            .attr("width", function(d) {
+                total = d.freq.Q1+d.freq.Q2+d.freq.Q3+d.freq.Q4;
+                return xScale(total);
+            })
+            .attr("transform", "translate(80, 0)");
+
+            //Bar Labels
+            RevBar.append("text")
+            .attr("class", "value")
+            .text(function(d) {
+                total = d.freq.Q1+d.freq.Q2+d.freq.Q3+d.freq.Q4;
+                return ("$" + total.toString());
+            })
+            .attr("x", function(d) {
+                total = d.freq.Q1+d.freq.Q2+d.freq.Q3+d.freq.Q4;
+                return xScale(total);
+            })
+            .attr("transform", "translate(10,30)")
+            .attr("text-anchor", "start");
+
+            //Interactive Visualization
+            RevBar.on("mousemove", function(d) {
+                quarters = [d.freq.Q1, d.freq.Q2, d.freq.Q3, d.freq.Q4];
+                labels = ["Q1", "Q2", "Q3", "Q4"]
+
+                var RevBar2 = svg.selectAll("RevBar").data(quarters).enter().append("g");
+
+                RevBar2.attr("class", "RevBar2")
+                .attr("cx",0)
+                .attr("transform", function(d, i) {
+                   return "translate(" + 80 + "," + (i * 55) + ")";
+                }).append("text")
+                .attr("class", "label")
+                .attr("x", 730)
+                .attr("y", 17.5)
+                .attr("dy", "-.3em")
+                .text(function(d,i) {
+                    return labels[i];
+                });
+
+                //Creating the Bars
+                RevBar2.append("rect")
+                .attr("height", 25)
+                .attr("width", function(d,i) {
+                    total = quarters[i];
+                    return xScale(total);
+                })
+                .attr("transform", "translate(" + 750 + ", " + 0 + ")");
+
+                //Bar Labels
+                RevBar2.append("text")
+                .attr("class", "value")
+                .text(function(d,i) {
+                    total = quarters[i];
+                    return ("$" + total.toString());
+                })
+                .attr("x", function(d,i) {
+                    total = quarters[i];
+                    return xScale(total);
+                })
+                .attr("transform", "translate(755,20)")
+                .style("fill", "steelblue")
+                .attr("text-anchor", "start");
+
+                });
+
+            RevBar.on("mouseout", function(d) {
+                svg.selectAll(".RevBar2").remove();
+            })
+
+        </script>
+        <p></p>
+    </body>
+</html>

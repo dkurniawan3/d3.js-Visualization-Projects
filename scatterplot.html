@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>Scatterplot</title>
+        <script type="text/javascript" src="../lib/d3.v3.min.js"></script>
+        <style type="text/css">
+            .axis path,
+            .axis line {
+                fill: none;
+                stroke: black;
+                shape-rendering: crispEdges;
+            }
+
+            .label {
+                font-weight: bold;
+            }
+
+            .point {
+                fill: steelBlue;
+                stroke: black;
+            }
+            .axis text {
+                font-family: sans-serif;
+                font-size: 11px;
+            }
+
+            .grid .tick line{
+                opacity: 0.7;
+                stroke: lightgrey;
+                stroke-dasharray: 5,5;
+            }
+            .grid path {
+                stroke-width: 0;
+            }
+
+            .legend {
+                font-size: 12px;
+            }
+
+        </style>
+    </head>
+
+    <div id="area1"></div>
+    <div id="area2"></div>
+
+    <body>
+        <script type="text/javascript">
+            var margin = {top: 30, right: 20, bottom: 50, left: 40};
+            var w  = 960 - margin.left - margin.right;
+            var h = 500 - margin.top - margin.bottom;
+            var padding = 30;
+            var colors = {"Lagomorpha":"red", "Didelphimorphia":"blue", "Dasyuromorphia":"green"};
+            var Distribution = d3.scale.linear().range([h, 0]);
+            var BodyMass = d3.scale.linear().range([0, w]);
+
+            //Import TSV Dataset
+            d3.tsv("data.tsv", function(error, dataset) {
+                if (error) throw error;
+
+                dataset.forEach(function(d) {
+                    d.Distribution = +d.Distribution;
+                    d.BodyMass = +d.BodyMass;
+                    d.Species = d.Species;
+                });
+
+            var xScale = d3.scale.linear()
+                .domain([0, d3.max(dataset, function(d) { return d.BodyMass; })])
+                .range([padding, w - padding * 2]);
+
+            var yScale = d3.scale.linear()
+                .domain([0, d3.max(dataset, function(d) { return d.Distribution; })])
+                .range([h - padding, padding]);
+
+            //Domains
+            BodyMass.domain([0,d3.max(dataset, function(d)
+                { return d.BodyMass; })]).nice();
+            Distribution.domain([0,d3.max(dataset, function(d)
+                { return d.Distribution; })]).nice();
+
+            //SVG Creation
+            var svg = d3.select("#area1")
+                    .append("svg")
+                    .attr("width", w + margin.left + margin.right + 500)
+                    .attr("height", h + margin.top + margin.bottom)
+                    .append("g")
+                    .attr("transform", "translate(" + margin.left + "," +
+                    margin.top + ")");
+
+            //Add Title
+            svg.append("text")
+            .attr("x", (w / 2))
+            .attr("y", 0 - (margin.top / 2))
+            .attr("text-anchor", "middle")
+            .style("font-size", "16px")
+            .style("font-weight", "bold")
+            .text("Distribution vs. Body Mass");
+
+            //Add Y-Axis
+            svg.append("g")
+            .attr("class", "y axis")
+            .call(d3.svg.axis().scale(Distribution).orient("left"))
+            .append("text")
+            .attr("class", "label")
+            .attr("y", 6)
+            .attr("dy", ".71em")
+            .attr("text-anchor", "end")
+            .attr("transform", "rotate(-90)")
+            .text("Distribution");
+
+            //Add X-Axis
+            svg.append("g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + h + ")")
+            .call(d3.svg.axis().scale(BodyMass).orient("bottom"))
+            .append("text")
+            .attr("class", "label")
+            .attr("x", w)
+            .attr("y", -6)
+            .attr("text-anchor", "end")
+            .text("Body Mass");
+
+            //Add Gridlines
+            svg.append("g")
+            .attr("class", "grid")
+            .attr("transform", "translate(0," + h + ")")
+            .call(d3.svg.axis().scale(BodyMass).orient("bottom")
+            .tickSize(-h, 0, 0)
+            .tickFormat(""));
+
+            svg.append("g")
+            .attr("class", "grid")
+            .call(d3.svg.axis().scale(Distribution).orient("left")
+            .tickSize(-w, 0, 0)
+            .tickFormat(""));
+
+            //Add Points
+            svg.selectAll(".point")
+            .data(dataset)
+            .enter().append("path")
+            .attr("class","point")
+            .attr("d", d3.svg.symbol()
+            .type(function(d) {
+                if (d.Species == "Lagomorpha") {
+                        return "circle";
+                    } else if (d.Species == "Didelphimorphia") {
+                        return "square";
+                    } else if (d.Species == "Dasyuromorphia") {
+                        return "triangle-up";
+                    }}))
+            .attr("transform", function(d) { return "translate(" +
+                BodyMass(d.BodyMass)+ "," + Distribution(d.Distribution) + ")"; })
+            .style("stroke", function(d) {
+                    if (d.Species == "Lagomorpha") {
+                        return "red";
+                    } else if (d.Species == "Didelphimorphia") {
+                        return "blue";
+                    } else if (d.Species == "Dasyuromorphia") {
+                        return "green";
+                    }})
+            .style("fill", "none")
+
+            //Draw Legend
+            var legend = svg.selectAll(".Legend").data(Object.keys(colors))
+            .enter().append("g")
+            .attr("class", "legend")
+            .attr("transform", function(d, i) {
+                return "translate(0," + i*20 + ")";});
+
+            legend.append("path").attr("transform", function(d) {
+                return "translate(" + (30+w) + "," + 30 + ")"; })
+            .attr("d", d3.svg.symbol().type(function(d) {
+            if (d == "Lagomorpha") {
+                return "circle";}
+            else if (d == "Didelphimorphia") {
+                return "square";}
+            else {
+                return "triangle-up";
+            }}))
+            .style("stroke", function(d) {
+                return colors[d];})
+            .style("fill","none");
+
+            legend.append("text")
+            .attr("y", 30)
+            .attr("x", w + 125)
+            .attr("dy", ".35em")
+            .style("text-anchor", "end")
+            .text(function(d) {
+                return d;});
+
+        });
+
+        </script>
+        <script type = "text/javascript">
+            var margin = {top: 30, right: 20, bottom: 50, left: 40};
+            var w  = 960 - margin.left - margin.right;
+            var h = 500 - margin.top - margin.bottom;
+            var padding = 30;
+            var colors = {"Lagomorpha":"red", "Didelphimorphia":"blue", "Dasyuromorphia":"green"};
+            var DistributionyLog = d3.scale.log().range([h, 0]);
+            var BodyMassxLog = d3.scale.log().range([0, w]);
+            var uniqueSpecies = ["Lagomorpha", "Didelphimorphia", "Dasyuromorphia"]
+
+            //Import TSV Dataset
+            d3.tsv("data.tsv", function(error, dataset) {
+                if (error) throw error;
+
+                dataset.forEach(function(d) {
+                    d.Distribution = +d.Distribution;
+                    d.BodyMass = +d.BodyMass;
+                    d.Species = d.Species;
+                });
+
+            var xScale = d3.scale.linear()
+                .domain([0, d3.max(dataset, function(d) { return d.BodyMass; })])
+                .range([padding, w - padding * 2]);
+
+            var yScale = d3.scale.linear()
+                .domain([0, d3.max(dataset, function(d) { return d.Distribution; })])
+                .range([h - padding, padding]);
+
+            //Domains
+            BodyMassxLog.domain(d3.extent(dataset, function(d)
+                { return d.BodyMass; })).nice();
+            DistributionyLog.domain(d3.extent(dataset, function(d)
+                { return d.Distribution; })).nice();
+
+            //SVG #2 Creation
+            var svg2 = d3.select("#area2")
+                    .append("svg")
+                    .attr("width", w + margin.left + margin.right + 300)
+                    .attr("height", h + margin.top + margin.bottom)
+                    .append("g")
+                    .attr("transform", "translate(" + margin.left + "," +
+                    margin.bottom + ")");
+
+            //Add Title
+            svg2.append("text")
+            .attr("x", (w / 2))
+            .attr("y", 0 - (margin.top / 2))
+            .attr("text-anchor", "middle")
+            .style("font-size", "16px")
+            .style("font-weight", "bold")
+            .text("Distribution vs. Body Mass (Log Scaled)");
+
+            //Add Y-Axis
+            svg2.append("g")
+            .attr("class", "y axis")
+            .call(d3.svg.axis().scale(DistributionyLog).orient("left").ticks(7))
+            .append("text")
+            .attr("class", "label")
+            .attr("y", 6)
+            .attr("dy", ".71em")
+            .attr("text-anchor", "end")
+            .attr("transform", "rotate(-90)")
+            .text("Distribution");
+
+            //Add X-Axis
+            svg2.append("g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + h + ")")
+            .call(d3.svg.axis().scale(BodyMassxLog).orient("bottom").ticks(7))
+            .append("text")
+            .attr("class", "label")
+            .attr("x", w)
+            .attr("y", -6)
+            .attr("text-anchor", "end")
+            .text("Body Mass");
+
+            //Add Gridlines
+            svg2.append("g")
+            .attr("class", "grid")
+            .attr("transform", "translate(0," + h + ")")
+            .call(d3.svg.axis().scale(BodyMassxLog).orient("bottom")
+            .tickSize(-h, 0, 0)
+            .tickFormat(""));
+
+            svg2.append("g")
+            .attr("class", "grid")
+            .call(d3.svg.axis().scale(DistributionyLog).orient("left")
+            .tickSize(-w, 0, 0)
+            .tickFormat(""));
+
+            //Add Points
+            svg2.selectAll(".point")
+            .data(dataset)
+            .enter().append("path")
+            .attr("class","point")
+            .attr("d", d3.svg.symbol()
+            .type(function(d) {
+                if (d.Species == "Lagomorpha") {
+                        return "circle";
+                    } else if (d.Species == "Didelphimorphia") {
+                        return "square";
+                    } else if (d.Species == "Dasyuromorphia") {
+                        return "triangle-up";
+                    }}))
+            .attr("transform", function(d) { return "translate(" +
+                BodyMassxLog(d.BodyMass)+ "," + DistributionyLog(d.Distribution) + ")"; })
+            .style("stroke", function(d) {
+                    if (d.Species == "Lagomorpha") {
+                        return "red";
+                    } else if (d.Species == "Didelphimorphia") {
+                        return "blue";
+                    } else if (d.Species == "Dasyuromorphia") {
+                        return "green";
+                    }})
+            .style("fill", "none")
+
+            //Draw Legend
+            var legend = svg2.selectAll(".Legend").data(Object.keys(colors))
+            .enter().append("g")
+            .attr("class", "legend")
+            .attr("transform", function(d, i) {
+                return "translate(0," + i*20 + ")";});
+
+            legend.append("path").attr("transform", function(d) {
+                return "translate(" + (30+w) + "," + 30 + ")"; })
+            .attr("d", d3.svg.symbol().type(function(d) {
+            if (d == "Lagomorpha") {
+                return "circle";}
+            else if (d == "Didelphimorphia") {
+                return "square";}
+            else {
+                return "triangle-up";
+            }}))
+            .style("stroke", function(d) {
+                return colors[d];})
+            .style("fill","none");
+
+            legend.append("text")
+            .attr("y", 30)
+            .attr("x", w + 125)
+            .attr("dy", ".35em")
+            .style("text-anchor", "end")
+            .text(function(d) {
+                return d;});
+
+        });
+
+        </script>
+        <p></p>
+    </body>
+</html>
